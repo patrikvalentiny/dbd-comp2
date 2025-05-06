@@ -1,0 +1,6 @@
+@listings_service_HostAddress = http://localhost:5198
+
+GET {{listings_service_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
