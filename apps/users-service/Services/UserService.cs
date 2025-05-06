@@ -27,11 +27,6 @@ public class UserService(IUserRepository userRepository) : IUserService
 
     public async Task<User> CreateUserAsync(User user)
     {
-        // Generate a unique ID if not provided
-        if (user.Id == Guid.Empty)
-        {
-            user.Id = new Guid();
-        }
 
         return await userRepository.CreateUserAsync(user);
     }

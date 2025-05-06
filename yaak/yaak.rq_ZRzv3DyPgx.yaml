@@ -1,0 +1,28 @@
+type: http_request
+model: http_request
+id: rq_ZRzv3DyPgx
+createdAt: 2025-05-06T11:29:18.795630
+updatedAt: 2025-05-06T11:36:51.017173800
+workspaceId: wk_T6Do9eAgKH
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "username": "${[ faker.internet.userName() ]}",
+      "email": "${[ faker.internet.email() ]}",
+      "profilePicUrl": "${[ faker.image.avatar() ]}"
+    }
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: ''
+sortPriority: 0.0
+url: http://localhost:5118/api/Users
+urlParameters: []

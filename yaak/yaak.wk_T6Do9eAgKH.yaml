@@ -1,0 +1,10 @@
+type: workspace
+model: workspace
+id: wk_T6Do9eAgKH
+createdAt: 2025-05-06T11:28:55.058963600
+updatedAt: 2025-05-06T11:28:55.058964200
+name: dbd-comp2
+description: ''
+settingValidateCertificates: true
+settingFollowRedirects: true
+settingRequestTimeout: 0

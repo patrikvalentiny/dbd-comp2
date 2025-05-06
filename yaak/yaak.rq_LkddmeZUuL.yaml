@@ -1,0 +1,29 @@
+type: http_request
+model: http_request
+id: rq_LkddmeZUuL
+createdAt: 2025-05-06T11:29:44.846599800
+updatedAt: 2025-05-06T11:39:15.599112400
+workspaceId: wk_T6Do9eAgKH
+folderId: null
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "id": "0196a561-b5fa-7556-b607-b6e0beea062a",
+      "username": "${[ faker.internet.userName() ]}",
+      "email": "${[ faker.internet.email() ]}",
+      "profilePicUrl": null
+    }
+bodyType: application/json
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: PUT
+name: ''
+sortPriority: 0.0
+url: http://localhost:5118/api/Users/0196a561-b5fa-7556-b607-b6e0beea062a
+urlParameters: []
