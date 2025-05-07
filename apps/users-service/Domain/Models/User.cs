@@ -20,7 +20,7 @@ namespace UsersService.Domain.Models
         public string Email { get; set; } = string.Empty;
     
         
-        [Column("profile_pic_url")]
+        [Column("avatar_url")]
         public string? ProfilePicUrl { get; set; }
     }
 }
