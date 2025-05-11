@@ -4,52 +4,61 @@ using UsersService.Infrastructure.Data;
 
 namespace UsersService.Infrastructure.Repositories
 {
-    public class UserRepository(UserDbContext context) : IUserRepository
+    public class UserRepository : IUserRepository
     {
+        private readonly UserDbContext _context;
+
+        public UserRepository(UserDbContext context)
+        {
+            _context = context;
+        }
+
+        // Read operations (Queries)
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
-            return await context.Users.ToListAsync();
+            return await _context.Users.ToListAsync();
         }
 
         public async Task<User?> GetUserByIdAsync(Guid id)
         {
-            return await context.Users.FindAsync(id);
+            return await _context.Users.FindAsync(id);
         }
 
         public async Task<User?> GetUserByUsernameAsync(string username)
         {
-            return await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
         }
 
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            return await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
 
+        // Write operations (Commands)
         public async Task<User> CreateUserAsync(User user)
         {
-            context.Users.Add(user);
-            await context.SaveChangesAsync();
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
             return user;
         }
 
         public async Task UpdateUserAsync(User user)
         {
-            var existingUser = await context.Users.FindAsync(user.Id);
+            var existingUser = await _context.Users.FindAsync(user.Id);
             if (existingUser != null)
             {
-                context.Entry(existingUser).CurrentValues.SetValues(user);
-                await context.SaveChangesAsync();
+                _context.Entry(existingUser).CurrentValues.SetValues(user);
+                await _context.SaveChangesAsync();
             }
         }
 
         public async Task DeleteUserAsync(Guid id)
         {
-            var user = await context.Users.FindAsync(id);
+            var user = await _context.Users.FindAsync(id);
             if (user != null)
             {
-                context.Users.Remove(user);
-                await context.SaveChangesAsync();
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
             }
         }
     }

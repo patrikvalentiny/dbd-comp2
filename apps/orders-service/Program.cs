@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using OrdersService.Infrastructure.Data;
 using OrdersService.Infrastructure.Repositories;
 using OrdersService.Services;
+using OrdersService.CQRS.Commands;
+using OrdersService.CQRS.Queries;
 using Scalar.AspNetCore;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,11 +13,25 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")!));
 
-// Register repositories and services
+// Register repositories and transaction manager
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Register CQRS handlers
+// Commands
+builder.Services.AddScoped<ICreateOrderCommand, CreateOrderCommand>();
+builder.Services.AddScoped<IUpdateOrderStatusCommand, UpdateOrderStatusCommand>();
+builder.Services.AddScoped<IUpdateShippingInfoCommand, UpdateShippingInfoCommand>();
+builder.Services.AddScoped<IDeleteOrderCommand, DeleteOrderCommand>();
+
+// Queries
+builder.Services.AddScoped<IGetAllOrdersQuery, GetAllOrdersQuery>();
+builder.Services.AddScoped<IGetOrderByIdQuery, GetOrderByIdQuery>();
+builder.Services.AddScoped<IGetOrdersByBuyerIdQuery, GetOrdersByBuyerIdQuery>();
+builder.Services.AddScoped<IGetOrdersBySellerIdQuery, GetOrdersBySellerIdQuery>();
+
+// Register services
 builder.Services.AddScoped<IOrderService, OrderService>();
-
-
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

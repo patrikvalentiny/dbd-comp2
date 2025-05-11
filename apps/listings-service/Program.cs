@@ -6,6 +6,9 @@ using ListingsService.Repositories;
 using listings_service.Infrastructure.Services;
 using Microsoft.AspNetCore.Http.Features;
 using StackExchange.Redis;
+using listings_service.CQRS.Commands;
+using listings_service.CQRS.Queries;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +20,7 @@ builder.Services.AddOpenApi();
 // Configure MongoDB with MongoContext
 builder.Services.AddSingleton<MongoContext>();
 builder.Services.AddScoped<IListingRepository, MongoListingRepository>();
+builder.Services.AddScoped<IMongoTransactionManager, MongoTransactionManager>();
 
 // Configure Redis Connection
 var redisConnectionString = builder.Configuration["RedisSettings:ConnectionString"] ?? "localhost:6379";
@@ -25,6 +29,20 @@ builder.Services.AddSingleton<RedisListingsRepository>();
 
 // Register MinIO repository
 builder.Services.AddSingleton<MinioStorageRepository>();
+
+// Register CQRS components
+// Commands
+builder.Services.AddScoped<ICreateListingCommand, CreateListingCommand>();
+builder.Services.AddScoped<IUpdateListingCommand, UpdateListingCommand>();
+builder.Services.AddScoped<IDeleteListingCommand, DeleteListingCommand>();
+builder.Services.AddScoped<IUpdateListingStatusCommand, UpdateListingStatusCommand>();
+builder.Services.AddScoped<IGenerateImageUploadUrlsCommand, GenerateImageUploadUrlsCommand>();
+
+// Queries
+builder.Services.AddScoped<IGetAllListingsQuery, GetAllListingsQuery>();
+builder.Services.AddScoped<IGetListingByIdQuery, GetListingByIdQuery>();
+builder.Services.AddScoped<IGetListingsBySellerIdQuery, GetListingsBySellerIdQuery>();
+builder.Services.AddScoped<ISearchListingsQuery, SearchListingsQuery>();
 
 // Register services
 builder.Services.AddScoped<ListingService>();

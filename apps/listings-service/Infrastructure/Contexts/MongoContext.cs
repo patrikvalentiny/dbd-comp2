@@ -27,7 +27,7 @@ namespace listings_service.Infrastructure.Contexts
             // Initialize collections and indexes
             InitializeCollections();
         }
-
+        public IMongoClient Client => _client;
         public IMongoCollection<Listing> Listings => _database.GetCollection<Listing>("listings");
 
         private void InitializeCollections()
