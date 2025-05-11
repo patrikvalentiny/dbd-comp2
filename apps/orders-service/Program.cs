@@ -4,7 +4,10 @@ using OrdersService.Infrastructure.Repositories;
 using OrdersService.Services;
 using OrdersService.CQRS.Commands;
 using OrdersService.CQRS.Queries;
+using OrdersService.MessageHandlers;
 using Scalar.AspNetCore;
+using MessageClient.Extensions;
+using MessageClient.Configuration;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +19,20 @@ builder.Services.AddDbContext<OrderDbContext>(options =>
 // Register repositories and transaction manager
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Register MessageClient with RabbitMQ and handlers
+builder.Services.AddMessageHandler(
+    handlerOptions => {
+        // Configure message handler options if needed
+    },
+    clientOptions => {
+        clientOptions.ConnectionString = builder.Configuration.GetConnectionString("RabbitMQ") ?? "host=rabbitmq";
+        clientOptions.MessagingProvider = MessagingProvider.RabbitMQ;
+    }
+);
+
+// Register message handlers
+builder.Services.AddScoped<UserDeletedHandler>();
 
 // Register CQRS handlers
 // Commands

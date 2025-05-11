@@ -8,7 +8,9 @@ using Microsoft.AspNetCore.Http.Features;
 using StackExchange.Redis;
 using listings_service.CQRS.Commands;
 using listings_service.CQRS.Queries;
-using System.Reflection;
+using listings_service.MessageHandlers;
+using MessageClient.Extensions;
+using MessageClient.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +31,20 @@ builder.Services.AddSingleton<RedisListingsRepository>();
 
 // Register MinIO repository
 builder.Services.AddSingleton<MinioStorageRepository>();
+
+// Register MessageClient with RabbitMQ and handlers
+builder.Services.AddMessageHandler(
+    handlerOptions => {
+        // Configure message handler options if needed
+    },
+    clientOptions => {
+        clientOptions.ConnectionString = builder.Configuration.GetConnectionString("RabbitMQ") ?? "host=rabbitmq";
+        clientOptions.MessagingProvider = MessagingProvider.RabbitMQ;
+    }
+);
+
+// Register message handlers
+builder.Services.AddScoped<UserDeletedHandler>();
 
 // Register CQRS components
 // Commands

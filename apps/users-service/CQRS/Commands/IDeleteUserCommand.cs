@@ -1,3 +1,5 @@
+using MessageClient.Interfaces;
+using Messages;
 using UsersService.Infrastructure.Repositories;
 
 namespace UsersService.CQRS.Commands
@@ -11,24 +13,44 @@ namespace UsersService.CQRS.Commands
     {
         private readonly IUserRepository _userRepository;
         private readonly ITransactionManager _transactionManager;
+        private readonly IMessagingClient _messagingClient;
+        private readonly ILogger<DeleteUserCommand> _logger;
 
-        public DeleteUserCommand(IUserRepository userRepository, ITransactionManager transactionManager)
+        public DeleteUserCommand(
+            IUserRepository userRepository,
+            ITransactionManager transactionManager,
+            IMessagingClient messagingClient,
+            ILogger<DeleteUserCommand> logger)
         {
             _userRepository = userRepository;
             _transactionManager = transactionManager;
+            _messagingClient = messagingClient;
+            _logger = logger;
         }
 
-        public async Task ExecuteAsync(Guid userId)
+        public async Task ExecuteAsync(Guid id)
         {
+            await _transactionManager.BeginTransactionAsync();
+
             try
             {
-                await _transactionManager.BeginTransactionAsync();
-                await _userRepository.DeleteUserAsync(userId);
+                await _userRepository.DeleteUserAsync(id);
+
+                // Publish the user deleted event
+                var userDeletedEvent = new UserDeleted
+                {
+                    UserId = id
+                };
+
+                await _messagingClient.PublishAsync("user_deleted", userDeletedEvent);
+                _logger.LogInformation("Published UserDeleted event for user {UserId}", id);
+
                 await _transactionManager.CommitTransactionAsync();
             }
-            catch
+            catch (Exception ex)
             {
                 await _transactionManager.RollbackTransactionAsync();
+                _logger.LogError(ex, "Failed to delete user {UserId}", id);
                 throw;
             }
         }

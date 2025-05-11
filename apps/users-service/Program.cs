@@ -5,6 +5,8 @@ using UsersService.Infrastructure.Repositories;
 using UsersService.Services;
 using UsersService.CQRS.Commands;
 using UsersService.CQRS.Queries;
+using MessageClient.Extensions;
+using MessageClient.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +17,13 @@ builder.Services.AddDbContext<UserDbContext>(options =>
 // Register repositories and transaction manager
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Register MessageClient with RabbitMQ
+builder.Services.AddMessageClient(options => {
+    options.ConnectionString = builder.Configuration.GetConnectionString("RabbitMQ") ?? "host=rabbitmq";
+    options.MessagingProvider = MessagingProvider.RabbitMQ;
+    options.UseOutbox = true; // Enable outbox pattern for reliability
+});
 
 // Register CQRS handlers
 // Commands

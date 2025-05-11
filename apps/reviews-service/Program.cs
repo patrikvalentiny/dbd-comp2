@@ -4,7 +4,10 @@ using ReviewsService.Infrastructure.Repositories;
 using ReviewsService.Services;
 using ReviewsService.CQRS.Commands;
 using ReviewsService.CQRS.Queries;
+using ReviewsService.MessageHandlers;
 using Scalar.AspNetCore;
+using MessageClient.Extensions;
+using MessageClient.Configuration;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +19,20 @@ builder.Services.AddDbContext<ReviewDbContext>(options =>
 // Register repositories and transaction manager
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 builder.Services.AddScoped<ITransactionManager, TransactionManager>();
+
+// Register MessageClient with RabbitMQ and handlers
+builder.Services.AddMessageHandler(
+    handlerOptions => {
+        // Configure message handler options if needed
+    },
+    clientOptions => {
+        clientOptions.ConnectionString = builder.Configuration.GetConnectionString("RabbitMQ") ?? "host=rabbitmq";
+        clientOptions.MessagingProvider = MessagingProvider.RabbitMQ;
+    }
+);
+
+// Register message handlers
+builder.Services.AddScoped<UserDeletedHandler>();
 
 // Register CQRS handlers
 // Commands
