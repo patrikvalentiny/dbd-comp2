@@ -31,30 +31,6 @@ namespace listings_service.Infrastructure.Services
 
         }
 
-        public async Task<bool> UploadFileAsync(string objectName, Stream fileStream, string contentType)
-        {
-            try
-            {
-                var putObjectArgs = new PutObjectArgs()
-                    .WithBucket(_bucketName)
-                    .WithObject(objectName)
-                    .WithStreamData(fileStream)
-                    .WithContentType(contentType)
-                    .WithObjectSize(fileStream.Length);
-
-                await _minioClient.PutObjectAsync(putObjectArgs);
-                
-                _logger.LogInformation($"Uploaded file {objectName} to bucket {_bucketName}");
-                
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error uploading file to Minio");
-                return false;
-            }
-        }
-
         public async Task<string> GeneratePresignedUrlForUpload(string listingId, string fileName)
         {
             try
@@ -74,11 +50,34 @@ namespace listings_service.Infrastructure.Services
                 
                 _logger.LogInformation($"Generated presigned upload URL for {objectName}");
                 
-                return presignedUrl;
+                // Return both the URL and the object name so the client knows where the file will be stored
+                return new { PresignedUrl = presignedUrl, ObjectName = objectName, ContentType = contentType }.ToString()!;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating presigned upload URL");
+                throw;
+            }
+        }
+
+        public async Task<string> GeneratePresignedUrlForDownload(string objectName)
+        {
+            try
+            {
+                var presignedGetObjectArgs = new PresignedGetObjectArgs()
+                    .WithBucket(_bucketName)
+                    .WithObject(objectName)
+                    .WithExpiry(_presignedUrlExpiryMinutes * 60);
+
+                string presignedUrl = await _minioClient.PresignedGetObjectAsync(presignedGetObjectArgs);
+                
+                _logger.LogInformation($"Generated presigned download URL for {objectName}");
+                
+                return presignedUrl;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating presigned download URL");
                 throw;
             }
         }
@@ -110,6 +109,28 @@ namespace listings_service.Infrastructure.Services
                 ".webp" => "image/webp",
                 _ => "application/octet-stream"
             };
+        }
+
+        public async Task EnsureBucketExistsAsync()
+        {
+            try
+            {
+                // Check if bucket exists
+                var bucketExistsArgs = new BucketExistsArgs().WithBucket(_bucketName);
+                bool found = await _minioClient.BucketExistsAsync(bucketExistsArgs);
+                if (!found)
+                {
+                    // Create bucket if it doesn't exist
+                    var makeBucketArgs = new MakeBucketArgs().WithBucket(_bucketName);
+                    await _minioClient.MakeBucketAsync(makeBucketArgs);
+                    _logger.LogInformation($"Created bucket: {_bucketName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error ensuring bucket {_bucketName} exists");
+                throw;
+            }
         }
     }
 }

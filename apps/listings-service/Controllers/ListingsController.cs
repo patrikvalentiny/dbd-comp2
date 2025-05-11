@@ -106,10 +106,34 @@ namespace listings_service.Controllers
         }
 
         /// <summary>
-        /// Creates a new listing in the system with optional image uploads.
+        /// Generates presigned URLs for uploading images for a listing.
+        /// </summary>
+        /// <param name="listingId">Optional ID of an existing listing. If not provided, a new ID will be generated.</param>
+        /// <param name="request">Request containing file names for which to generate upload URLs.</param>
+        /// <returns>A collection of presigned URLs for uploading images.</returns>
+        /// <response code="200">Returns the list of presigned URLs</response>
+        /// <response code="400">If the request is invalid</response>
+        [HttpPost("upload-urls")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [EndpointName("GenerateUploadUrls")]
+        [EndpointSummary("Generates presigned URLs for uploading listing images.")]
+        [EndpointDescription("Generates presigned URLs that clients can use to directly upload images to storage without going through the API server.")]
+        public async Task<ActionResult<IEnumerable<UploadUrlResponse>>> GenerateUploadUrls([FromQuery] string listingId, [FromBody] UploadUrlRequest request)
+        {
+            if (request == null || request.FileNames == null || request.FileNames.Count == 0)
+            {
+                return BadRequest("File names are required");
+            }
+
+            var uploadUrls = await _listingService.GenerateImageUploadUrlsAsync(listingId, request.FileNames);
+            return Ok(uploadUrls);
+        }
+
+        /// <summary>
+        /// Creates a new listing in the system.
         /// </summary>
         /// <param name="listing">The listing information to create.</param>
-        /// <param name="files">Optional image files to upload with the listing.</param>
         /// <returns>The newly created listing with its generated ID.</returns>
         /// <response code="201">Returns the newly created listing</response>
         /// <response code="400">If the listing data is invalid</response>
@@ -117,16 +141,16 @@ namespace listings_service.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [EndpointName("CreateListing")]
-        [EndpointSummary("Creates a new listing in the system with optional image uploads.")]
-        [EndpointDescription("Creates a new product listing with optional image files. The listing information must be provided in the request body and files should be sent as form data.")]
-        public async Task<ActionResult<Listing>> Create([FromForm] Listing listing, [FromForm] List<IFormFile> files)
+        [EndpointSummary("Creates a new listing in the system.")]
+        [EndpointDescription("Creates a new product listing. The listing information must be provided in the request body.")]
+        public async Task<ActionResult<Listing>> Create(Listing listing)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var createdListing = await _listingService.CreateListingAsync(listing, files);
+            var createdListing = await _listingService.CreateListingAsync(listing);
             return CreatedAtAction(nameof(GetById), new { id = createdListing.Id }, createdListing);
         }
 
@@ -154,7 +178,7 @@ namespace listings_service.Controllers
                 return BadRequest(ModelState);
             }
 
-            var success = await _listingService.UpdateListingAsync(id, listing, files);
+            var success = await _listingService.UpdateListingAsync(id, listing);
             if (!success)
             {
                 return NotFound();
@@ -216,5 +240,10 @@ namespace listings_service.Controllers
             }
             return NoContent();
         }
+    }
+
+    public class UploadUrlRequest
+    {
+        public List<string> FileNames { get; set; } = [];
     }
 }

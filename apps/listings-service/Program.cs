@@ -5,6 +5,7 @@ using listings_service.Services;
 using ListingsService.Repositories;
 using listings_service.Infrastructure.Services;
 using Microsoft.AspNetCore.Http.Features;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,10 +18,15 @@ builder.Services.AddOpenApi();
 builder.Services.AddSingleton<MongoContext>();
 builder.Services.AddScoped<IListingRepository, MongoListingRepository>();
 
-// Register MinIO service
+// Configure Redis Connection
+var redisConnectionString = builder.Configuration["RedisSettings:ConnectionString"] ?? "localhost:6379";
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisConnectionString));
+builder.Services.AddSingleton<RedisListingsRepository>();
+
+// Register MinIO repository
 builder.Services.AddSingleton<MinioStorageRepository>();
 
-// Register ListingService with dependency on MinioStorageService
+// Register services
 builder.Services.AddScoped<ListingService>();
 
 // Configure form options for file uploads
@@ -30,6 +36,13 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 var app = builder.Build();
+
+// Ensure MinIO bucket exists
+using (var scope = app.Services.CreateScope())
+{
+    var minioRepository = scope.ServiceProvider.GetRequiredService<MinioStorageRepository>();
+    await minioRepository.EnsureBucketExistsAsync();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
