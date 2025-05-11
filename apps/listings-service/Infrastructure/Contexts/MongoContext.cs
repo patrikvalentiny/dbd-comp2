@@ -39,9 +39,6 @@ namespace listings_service.Infrastructure.Contexts
             var textIndexModel = new CreateIndexModel<Listing>(
                 indexKeysBuilder.Text(l => l.Title).Text(l => l.Description));
             
-            // Location index for geospatial queries
-            var locationIndexModel = new CreateIndexModel<Listing>(
-                indexKeysBuilder.Geo2DSphere(l => l.Location.Coordinates));
             
             // Category + price index for filtering
             var categoryPriceIndexModel = new CreateIndexModel<Listing>(
@@ -51,7 +48,7 @@ namespace listings_service.Infrastructure.Contexts
             var statusIndexModel = new CreateIndexModel<Listing>(
                 indexKeysBuilder.Ascending(l => l.Status));
             
-            Listings.Indexes.CreateMany([textIndexModel, locationIndexModel, categoryPriceIndexModel, statusIndexModel]);
+            Listings.Indexes.CreateMany([textIndexModel, categoryPriceIndexModel, statusIndexModel]);
         }
     }
 }

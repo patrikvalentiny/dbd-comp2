@@ -12,6 +12,5 @@ namespace ListingsService.Repositories
         Task<bool> UpdateAsync(string id, Listing listingIn);
         Task<bool> DeleteAsync(string id);
         Task<bool> UpdateStatusAsync(string id, string status);
-        Task IncrementViewCountAsync(string id);
     }
 }

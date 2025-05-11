@@ -3,6 +3,7 @@ using listings_service.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 
 namespace listings_service.Controllers
 {
@@ -105,9 +106,10 @@ namespace listings_service.Controllers
         }
 
         /// <summary>
-        /// Creates a new listing in the system.
+        /// Creates a new listing in the system with optional image uploads.
         /// </summary>
         /// <param name="listing">The listing information to create.</param>
+        /// <param name="files">Optional image files to upload with the listing.</param>
         /// <returns>The newly created listing with its generated ID.</returns>
         /// <response code="201">Returns the newly created listing</response>
         /// <response code="400">If the listing data is invalid</response>
@@ -115,24 +117,25 @@ namespace listings_service.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [EndpointName("CreateListing")]
-        [EndpointSummary("Creates a new listing in the system.")]
-        [EndpointDescription("Creates a new product listing. The listing information must be provided in the request body.")]
-        public async Task<ActionResult<Listing>> Create(Listing listing)
+        [EndpointSummary("Creates a new listing in the system with optional image uploads.")]
+        [EndpointDescription("Creates a new product listing with optional image files. The listing information must be provided in the request body and files should be sent as form data.")]
+        public async Task<ActionResult<Listing>> Create([FromForm] Listing listing, [FromForm] List<IFormFile> files)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var createdListing = await _listingService.CreateListingAsync(listing);
+            var createdListing = await _listingService.CreateListingAsync(listing, files);
             return CreatedAtAction(nameof(GetById), new { id = createdListing.Id }, createdListing);
         }
 
         /// <summary>
-        /// Updates an existing listing.
+        /// Updates an existing listing with optional new images.
         /// </summary>
         /// <param name="id">The unique identifier of the listing to update.</param>
         /// <param name="listing">The updated listing information.</param>
+        /// <param name="files">Optional new image files to add to the listing.</param>
         /// <returns>No content if successful.</returns>
         /// <response code="204">If the listing was successfully updated</response>
         /// <response code="400">If the listing data is invalid</response>
@@ -142,16 +145,16 @@ namespace listings_service.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [EndpointName("UpdateListing")]
-        [EndpointSummary("Updates an existing listing.")]
-        [EndpointDescription("Updates the details of an existing product listing including title, description, price, etc.")]
-        public async Task<IActionResult> Update(string id, Listing listing)
+        [EndpointSummary("Updates an existing listing with optional new images.")]
+        [EndpointDescription("Updates the details of an existing product listing including title, description, price, and optional new images.")]
+        public async Task<IActionResult> Update(string id, [FromForm] Listing listing, [FromForm] List<IFormFile> files)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var success = await _listingService.UpdateListingAsync(id, listing);
+            var success = await _listingService.UpdateListingAsync(id, listing, files);
             if (!success)
             {
                 return NotFound();

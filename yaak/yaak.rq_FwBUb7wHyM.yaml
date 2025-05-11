@@ -1,0 +1,57 @@
+type: http_request
+model: http_request
+id: rq_FwBUb7wHyM
+createdAt: 2025-05-11T14:31:19.789300700
+updatedAt: 2025-05-11T14:32:44.741953700
+workspaceId: wk_T6Do9eAgKH
+folderId: fl_XRTARW6STZ
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    name: sellerId
+    value: ''
+  - enabled: true
+    name: title
+    value: ''
+  - enabled: true
+    name: description
+    value: ''
+  - enabled: true
+    name: category
+    value: ''
+  - enabled: true
+    name: subcategory
+    value: ''
+  - enabled: true
+    name: condition
+    value: ''
+  - enabled: true
+    name: price
+    value: ''
+  - enabled: true
+    name: currency
+    value: ''
+  - enabled: true
+    name: Location.City
+    value: ''
+  - enabled: true
+    name: ''
+    value: ''
+bodyType: application/x-www-form-urlencoded
+description: ''
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/x-www-form-urlencoded
+  id: m2Gy7B7BNE
+- enabled: true
+  name: ''
+  value: ''
+  id: dbjBPUnQE8
+method: POST
+name: ''
+sortPriority: 0.0
+url: http://localhost:5198/api/Listings
+urlParameters: []

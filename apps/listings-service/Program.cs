@@ -3,6 +3,8 @@ using listings_service.Infrastructure.Contexts;
 using listings_service.Repositories;
 using listings_service.Services;
 using ListingsService.Repositories;
+using listings_service.Infrastructure.Services;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,7 +16,18 @@ builder.Services.AddOpenApi();
 // Configure MongoDB with MongoContext
 builder.Services.AddSingleton<MongoContext>();
 builder.Services.AddScoped<IListingRepository, MongoListingRepository>();
+
+// Register MinIO service
+builder.Services.AddSingleton<MinioStorageRepository>();
+
+// Register ListingService with dependency on MinioStorageService
 builder.Services.AddScoped<ListingService>();
+
+// Configure form options for file uploads
+builder.Services.Configure<FormOptions>(options => 
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10 MB
+});
 
 var app = builder.Build();
 
