@@ -1,190 +1,73 @@
 # Compulsory 2: Second-Hand E-Commerce Platform Backend
 
-## Project Overview
-This project implements the backend architecture for a second-hand item e-commerce platform with the following core functionalities:
-- Listing items for sale
-- Browsing listings
-- Placing orders
-- Reviewing sellers
-
-## Architecture Design
+## Design Decisions & Assumptions
 
 ### Database Selection
 
-#### MongoDB (NoSQL) - For Listings
-We've chosen MongoDB specifically for our item listings for the following reasons:
-- **Flexible Schema**: Accommodates varying attributes across different item categories (electronics, clothing, furniture, etc.)
-- **Document Structure**: Natural fit for complex item listings with nested attributes and category-specific fields
-- **Query Performance**: Strong indexing and search capabilities for browsing and filtering listings
-- **Geospatial Support**: Efficient location-based searches for nearby listings
-
-#### PostgreSQL (Relational) - For Core Data
-PostgreSQL will serve as our primary database for most data entities:
-- **User Profiles**: Account information, preferences, and authentication
-- **Orders & Transactions**: Purchase history and payment tracking
-- **Reviews & Ratings**: Seller and buyer feedback
-- **Inventory Management**: Stock levels and availability tracking
-- **Analytics Data**: Structured reporting and business intelligence
-- **Financial Records**: Payment processing and accounting
-
-#### Redis (NoSQL) - For Caching and Sessions
-Redis serves multiple purposes in our architecture:
-- **Caching Layer**: In-memory data store for frequently accessed data
-- **Session Management**: Handling user sessions and authentication tokens
-- **Rate Limiting**: Protecting APIs from abuse
-- **Message Broker**: Supporting event-driven communication between services
+- **MongoDB (NoSQL)** is used for item listings. This choice is justified by the need for a flexible schema to accommodate various item types and attributes, as well as efficient querying and scalability for user-generated content.
+- **PostgreSQL (Relational)** is used for structured data such as user profiles, orders, and reviews. This ensures strong consistency, transactional integrity, and support for complex relationships.
+- **Redis (NoSQL, In-Memory)** is used for caching frequently accessed data (e.g., listings, search results) to improve performance and reduce database load.
 
 ### Data Schema and Storage Strategy
 
-#### User Profiles (PostgreSQL)
-```json
-{
-  "id": "string",
-  "email": "string",
-  "name": "string",
-  "avatar_url":"string"
-}
-```
+- **Listings (MongoDB):** Each listing is a document with flexible fields for category-specific attributes, images, and metadata. Indexes are created for text search, category, price, and status.
+- **Orders (PostgreSQL):** Orders are stored relationally, supporting transactional updates and relationships to users and listings.
+- **Reviews (PostgreSQL):** Reviews are linked to orders, users, and targets (seller, buyer, or item), supporting aggregation and analytics.
+- **User Profiles (PostgreSQL):** User profiles are implemented in the `users-service` using PostgreSQL. The schema includes fields such as `id`, `username`, `email`, and `avatar_url`. The service provides CRUD operations, CQRS separation, and publishes user deletion events for system-wide consistency.
 
-#### Item Listings (MongoDB)
-```json
-{
-  "_id": "string",
-  "sellerId": "string",
-  "title": "string",
-  "description": "string",
-  "category": "string",
-  "subcategory": "string",
-  "condition": "string",
-  "price": "number",
-  "currency": "string",
-  "location": {
-    "city": "string",
-    "country": "string",
-    "coordinates": [longitude, latitude]
-  },
-  "images": ["string"], // Cloud storage URLs
-  "status": "string", // active, sold, reserved, deleted
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "metadata": {
-    "views": "number",
-    "favorites": "number",
-    "custom_attributes": { } // Flexible schema for category-specific attributes
-  }
-}
-```
+#### Example Schemas
 
-#### Orders (PostgreSQL)
-```json
-{
-  "id": "string",
-  "buyerId": "string",
-  "sellerId": "string",
-  "listingId": "string",
-  "status": "string", // pending, confirmed, shipped, delivered, cancelled, returned
-  "amount": "number",
-  "currency": "string",
-  "paymentId": "string",
-  "shipping": {
-    "address": { },
-    "method": "string",
-    "trackingNumber": "string",
-    "estimatedDelivery": "date"
-  },
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp"
-}
-```
+- Listings: See `listings-service/Models/Listing.cs`
+- Orders: See `orders-service/Domain/Models/Order.cs`
+- Reviews: See `reviews-service/Domain/Models/Review.cs`
 
-#### Reviews (PostgreSQL)
-```json
-{
-  "id": "string",
-  "orderId": "string",
-  "reviewerId": "string",
-  "targetId": "string",
-  "targetType": "string", // seller, buyer, item
-  "rating": "number",
-  "comment": "string",
-  "createdAt": "timestamp",
-  "updatedAt": "timestamp",
-  "helpful": "number" // Number of users who found this review helpful
-}
-```
+### Integration of Cloud Storage
 
-### Cloud Storage Integration
-
-We'll use S3-compatible storage with MinIO for image and multimedia content:
-
-- **Storage Organization**:
-  - Buckets for different content types (profile-images, listing-images)
-  - Object prefixes to organize files hierarchically (user/{userId}/avatars/)
-  - Content-addressed storage with hashed object keys to prevent duplicates
-  - Versioning enabled for critical content to track changes
-
-- **Integration Flow**:
-  1. Client receives pre-signed S3 URLs for direct upload to MinIO
-  2. After upload, notification events trigger thumbnail generation and metadata extraction
-  3. Database records are updated with S3 object URLs and extracted metadata
-  4. CDN layer in front of MinIO distributes content globally for fast access
+- **MinIO (S3-compatible):** Used for storing item images and multimedia content.
+- **Integration Flow:**
+  1. Clients request pre-signed upload URLs from the backend.
+  2. Clients upload images directly to MinIO using these URLs.
+  3. Listing documents store the URLs of uploaded images.
+  4. On listing creation/update, caches are invalidated to ensure consistency.
 
 ### Caching Strategy
 
-#### Technology: Redis
-
-#### Cached Data:
-- **Hot Listings**: Most viewed and recently added items
-- **User Profiles**: Frequently accessed user data (excluding sensitive information)
-- **Search Results**: Common search queries and filtered listings
-- **Category Navigation**: Category tree and popular filters
-- **Static Content**: Platform configuration and static metadata
-
-#### Invalidation Strategy:
-- **Time-Based (TTL)**: Default expiration of 1 hour for most cached data
-- **Event-Based**: Cache invalidation on relevant data modifications
-- **Write-Through**: Critical data updates proactively update the cache
-- **Lazy Loading**: Background refresh for soon-to-expire high-value cache items
+- **Technology:** Redis
+- **Cached Data:** All listings, individual listings, seller listings, and search results.
+- **Invalidation:** 
+  - Time-based (TTL) for search results.
+  - Event-based invalidation on create, update, or delete operations.
+  - Write-through and lazy loading patterns are used where appropriate.
+- **Implementation:** See `listings-service/Services/ListingService.cs` for cache usage and invalidation logic.
 
 ### CQRS Implementation
 
-Our implementation separates read and write responsibilities:
-
-#### Command Services (Write Operations):
-- **Listing Service**: Create, update, delete listings (MongoDB)
-- **Order Service**: Place orders, update order status (PostgreSQL)
-- **User Service**: Register, update profile, manage preferences (PostgreSQL)
-- **Review Service**: Create and manage reviews (PostgreSQL)
-
-#### Query Services (Read Operations):
-- **Search Service**: Find items by various criteria
-- **Recommendation Service**: Personalized item suggestions
-- **Analytics Service**: Viewing patterns and market insights
-- **Notification Service**: User alerts and messages
-
-#### Benefits:
-- **Independent Scaling**: Scale read and write services based on actual load
-- **Optimized Data Models**: Different models for write (normalized) and read (denormalized)
-- **Resilience**: Read operations continue working even if write services are down
+- **Pattern:** Command Query Responsibility Segregation (CQRS) is implemented across all services.
+  - **Commands:** Handle write operations (create, update, delete).
+  - **Queries:** Handle read operations (get, search, aggregate).
+- **Benefits:** Enables independent scaling of read/write workloads, simplifies business logic, and improves maintainability.
+- **Implementation:** Each service (listings, orders, reviews) registers separate command and query handlers.
 
 ### Transaction Management
 
-#### Approach:
-- **PostgreSQL Transactions**: For critical operations within the relational database
-- **Two-Phase Commits**: For operations spanning PostgreSQL and MongoDB
-- **Saga Pattern**: For long-running transactions (order processing)
-- **Eventual Consistency**: Between MongoDB listings and PostgreSQL order data
+- **PostgreSQL:** Uses native transactions for critical operations (e.g., order placement, review creation).
+- **MongoDB:** Uses atomic document updates and, where needed, multi-document transactions.
+- **Cross-Service Consistency:** Eventual consistency is maintained between listings (MongoDB) and orders (PostgreSQL). For operations spanning both, a two-phase commit or saga pattern can be implemented (not fully implemented in this codebase, but the architecture supports it).
+- **Critical Scenarios:** Order placement, listing status updates, and review creation are handled with transactional integrity.
 
-#### Critical Transaction Scenarios:
-1. **Order Placement**:
-   - Verify item availability
-   - Reserve inventory
-   - Process payment
-   - Create order record
-   - Notify seller
+---
 
-2. **Item Status Updates**:
-   - Validate current status
-   - Update listing status
-   - Update relevant indexes
-   - Notify interested buyers
+## Implementation Details
+
+- **Microservices:** The backend is split into multiple services (`listings-service`, `orders-service`, `reviews-service`, `users-service`), each with its own database and API.
+- **Message Broker:** RabbitMQ is used for inter-service communication and event handling.
+- **Cloud Storage:** MinIO is used for storing images, with pre-signed URL support for secure uploads.
+- **Caching:** Redis is used for caching listings and search results.
+- **CQRS:** All services use CQRS for separation of read/write logic.
+- **API Documentation:** OpenAPI is enabled for all services.
+
+## Assumptions
+
+- User authentication and profile management are assumed to be handled by a separate service (not included in this repo).
+- Payment processing is out of scope for this implementation.
+- The code is structured for extensibility and easy addition of business logic.

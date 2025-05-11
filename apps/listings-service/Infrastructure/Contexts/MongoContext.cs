@@ -1,7 +1,5 @@
 using listings_service.Models;
-using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using System;
 
 namespace listings_service.Infrastructure.Contexts
 {
