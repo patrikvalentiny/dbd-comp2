@@ -13,7 +13,7 @@
 - **Listings (MongoDB):** Each listing is a document with flexible fields for category-specific attributes, images, and metadata. Indexes are created for text search, category, price, and status.
 - **Orders (PostgreSQL):** Orders are stored relationally, supporting transactional updates and relationships to users and listings.
 - **Reviews (PostgreSQL):** Reviews are linked to orders, users, and targets (seller, buyer, or item), supporting aggregation and analytics.
-- **User Profiles (PostgreSQL):** User profiles are implemented in the `users-service` using PostgreSQL. The schema includes fields such as `id`, `username`, `email`, and `avatar_url`. The service provides CRUD operations, CQRS separation, and publishes user deletion events for system-wide consistency.
+- **User Profiles (PostgreSQL):** User profiles are implemented in the `users-service` using PostgreSQL. 
 
 #### Example Schemas
 
